@@ -1,42 +1,22 @@
 package services
 
 import (
-	"go-api-gin/models"
-	"go-api-gin/repositories"
+	"example.com/student-api/models"
+	"example.com/student-api/repositories"
 )
 
-type StudentService interface {
-	GetStudents() ([]models.Student, error)
-	GetStudent(id string) (models.Student, error)
-	CreateStudent(student models.Student) error
-	UpdateStudent(id string, student models.Student) error
-	DeleteStudent(id string) error
+type StudentService struct {
+	Repo *repositories.StudentRepository
 }
 
-type studentService struct {
-	repo repositories.StudentRepository
+func (s *StudentService) GetStudents() ([]models.Student, error) {
+	return s.Repo.GetAll()
 }
 
-func NewStudentService(repo repositories.StudentRepository) StudentService {
-	return &studentService{repo: repo}
+func (s *StudentService) GetStudentByID(id string) (*models.Student, error) {
+	return s.Repo.GetByID(id)
 }
 
-func (s *studentService) GetStudents() ([]models.Student, error) {
-	return s.repo.GetAll()
-}
-
-func (s *studentService) GetStudent(id string) (models.Student, error) {
-	return s.repo.GetByID(id)
-}
-
-func (s *studentService) CreateStudent(student models.Student) error {
-	return s.repo.Create(student)
-}
-
-func (s *studentService) UpdateStudent(id string, student models.Student) error {
-	return s.repo.Update(id, student)
-}
-
-func (s *studentService) DeleteStudent(id string) error {
-	return s.repo.Delete(id)
+func (s *StudentService) CreateStudent(student models.Student) error {
+	return s.Repo.Create(student)
 }

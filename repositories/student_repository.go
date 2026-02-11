@@ -1,60 +1,49 @@
 package repositories
 
 import (
-	"errors"
-	"go-api-gin/models"
-	"gorm.io/gorm"
+	"database/sql"
+
+	"example.com/student-api/models"
 )
 
-type StudentRepository interface {
-	GetAll() ([]models.Student, error)
-	GetByID(id string) (models.Student, error)
-	Create(student models.Student) error
-	Update(id string, student models.Student) error
-	Delete(id string) error
+type StudentRepository struct {
+	DB *sql.DB
 }
 
-type studentRepository struct {
-	db *gorm.DB
-}
+func (r *StudentRepository) GetAll() ([]models.Student, error) {
+	rows, err := r.DB.Query("SELECT id, name, major, gpa FROM students")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
-func NewStudentRepository(db *gorm.DB) StudentRepository {
-	return &studentRepository{db: db}
-}
-
-func (r *studentRepository) GetAll() ([]models.Student, error) {
 	var students []models.Student
-	err := r.db.Find(&students).Error
-	return students, err
-}
-
-func (r *studentRepository) GetByID(id string) (models.Student, error) {
-	var student models.Student
-	err := r.db.First(&student, "id = ?", id).Error
-	return student, err
-}
-
-func (r *studentRepository) Create(student models.Student) error {
-	return r.db.Create(&student).Error
-}
-
-func (r *studentRepository) Update(id string, updatedData models.Student) error {
-	// ค้นหาว่ามีอยู่จริงไหม (Challenge 1 behavior)
-	var student models.Student
-	if err := r.db.First(&student, "id = ?", id).Error; err != nil {
-		return err
+	for rows.Next() {
+		var s models.Student
+		rows.Scan(&s.Id, &s.Name, &s.Major, &s.GPA)
+		students = append(students, s)
 	}
-	// อัปเดตข้อมูล
-	return r.db.Model(&student).Updates(updatedData).Error
+	return students, nil
 }
 
-func (r *studentRepository) Delete(id string) error {
-	result := r.db.Delete(&models.Student{}, "id = ?", id)
-	if result.Error != nil {
-		return result.Error
+func (r *StudentRepository) GetByID(id string) (*models.Student, error) {
+	row := r.DB.QueryRow(
+		"SELECT id, name, major, gpa FROM students WHERE id = ?",
+		id,
+	)
+
+	var s models.Student
+	err := row.Scan(&s.Id, &s.Name, &s.Major, &s.GPA)
+	if err != nil {
+		return nil, err
 	}
-	if result.RowsAffected == 0 {
-		return errors.New("student not found")
-	}
-	return nil
+	return &s, nil
+}
+
+func (r *StudentRepository) Create(s models.Student) error {
+	_, err := r.DB.Exec(
+		"INSERT INTO students (id, name, major, gpa) VALUES (?, ?, ?, ?)",
+		s.Id, s.Name, s.Major, s.GPA,
+	)
+	return err
 }

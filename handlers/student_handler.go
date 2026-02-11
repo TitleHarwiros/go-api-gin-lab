@@ -1,63 +1,48 @@
 package handlers
 
 import (
-	"go-api-gin/models"
-	"go-api-gin/services"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
+	"example.com/student-api/models"
+	"example.com/student-api/services"
 )
 
 type StudentHandler struct {
-	svc services.StudentService
-}
-
-func NewStudentHandler(svc services.StudentService) *StudentHandler {
-	return &StudentHandler{svc: svc}
-}
-
-// Challenge 1: Update Student
-func (h *StudentHandler) UpdateStudent(c *gin.Context) {
-	id := c.Param("id")
-	var student models.Student
-
-	// Challenge 3: Validation (ใช้ ShouldBindJSON คู่กับ struct tags)
-	if err := c.ShouldBindJSON(&student); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
-		return
-	}
-
-	if err := h.svc.UpdateStudent(id, student); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Student not found"})
-		return
-	}
-
-	// คืนข้อมูลที่อัปเดตแล้ว (ตั้งค่า ID ให้ตรงกับ URL)
-	student.ID = id
-	c.JSON(http.StatusOK, student)
-}
-
-// Challenge 2: Delete Student
-func (h *StudentHandler) DeleteStudent(c *gin.Context) {
-	id := c.Param("id")
-	if err := h.svc.DeleteStudent(id); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Student not found"})
-		return
-	}
-	c.Status(http.StatusNoContent)
+	Service *services.StudentService
 }
 
 func (h *StudentHandler) GetStudents(c *gin.Context) {
-	students, _ := h.svc.GetStudents()
+	students, err := h.Service.GetStudents()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, students)
 }
 
-func (h *StudentHandler) PostStudent(c *gin.Context) {
+func (h *StudentHandler) GetStudentByID(c *gin.Context) {
+	id := c.Param("id")
+	student, err := h.Service.GetStudentByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Student not found"})
+		return
+	}
+	c.JSON(http.StatusOK, student)
+}
+
+func (h *StudentHandler) CreateStudent(c *gin.Context) {
 	var student models.Student
 	if err := c.ShouldBindJSON(&student); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	h.svc.CreateStudent(student)
+
+	if err := h.Service.CreateStudent(student); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusCreated, student)
 }

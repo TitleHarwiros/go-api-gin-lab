@@ -1,38 +1,26 @@
 package main
 
 import (
-	"go-api-gin/handlers"
-	"go-api-gin/models"
-	"go-api-gin/repositories"
-	"go-api-gin/services"
-
 	"github.com/gin-gonic/gin"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+
+	"example.com/student-api/config"
+	"example.com/student-api/handlers"
+	"example.com/student-api/repositories"
+	"example.com/student-api/services"
 )
 
 func main() {
-	// Initialize Database
-	db, err := gorm.Open(sqlite.Open("students.db"), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
+	db := config.InitDB()
 
-	// Auto Migrate
-	db.AutoMigrate(&models.Student{})
-
-	// Setup Layers (Dependency Injection)
-	repo := repositories.NewStudentRepository(db)
-	svc := services.NewStudentService(repo)
-	handler := handlers.NewStudentHandler(svc)
+	repo := &repositories.StudentRepository{DB: db}
+	service := &services.StudentService{Repo: repo}
+	handler := &handlers.StudentHandler{Service: service}
 
 	r := gin.Default()
 
-	// Routes
 	r.GET("/students", handler.GetStudents)
-	r.POST("/students", handler.PostStudent)
-	r.PUT("/students/:id", handler.UpdateStudent)    // Challenge 1
-	r.DELETE("/students/:id", handler.DeleteStudent) // Challenge 2
+	r.GET("/students/:id", handler.GetStudentByID)
+	r.POST("/students", handler.CreateStudent)
 
 	r.Run(":8080")
 }
