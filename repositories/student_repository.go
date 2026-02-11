@@ -47,3 +47,35 @@ func (r *StudentRepository) Create(s models.Student) error {
 	)
 	return err
 }
+
+func (r *StudentRepository) Update(id string, s models.Student) (*models.Student, error) {
+	result, err := r.DB.Exec(
+		"UPDATE students SET name = ?, major = ?, gpa = ? WHERE id = ?",
+		s.Name, s.Major, s.GPA, id,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	return r.GetByID(id)
+}
+
+func (r *StudentRepository) Delete(id string) error {
+	result, err := r.DB.Exec("DELETE FROM students WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
